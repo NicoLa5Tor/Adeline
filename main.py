@@ -12,7 +12,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
 obj_message = Message()
-
+text = None
 def fit(prediction = 0.01,mat = None,alpha = 0.5,weigth = None):
     # Creación de objetos
     obj_op = Operations()
@@ -66,6 +66,12 @@ def fit(prediction = 0.01,mat = None,alpha = 0.5,weigth = None):
     print(f"Salidas de patrones (Yo): {Yo}")
     print(f"Pesos finales: {obj_functions.list_w}")
     return obj_functions.list_w, error_vs_epoca
+def set_text(txt):
+    global text 
+    text = txt
+def get_text():
+    global text 
+    return text
 def btn_aplicacion(inputs,outputs,weights,error,alpha):
     global obj_message
     try:
@@ -135,13 +141,14 @@ def btn_aplicacion(inputs,outputs,weights,error,alpha):
 
 def graficar():
     # Función para cargar archivo .txt y mostrar su contenido
-    def cargar_archivo(entry_field):
+    def cargar_archivo():
         archivo = filedialog.askopenfilename(filetypes=[("Archivos de texto", "*.txt")])
         if archivo:
             try:
                 with open(archivo, 'r') as file:
-                    data = file.read()
-                    entry_field.configure(text=data)  # Mostrar contenido en el label
+                    data = file.readlines()
+                data = [a.strip() for a in data]
+                set_text(txt=data)            
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo leer el archivo: {e}")
 
@@ -318,6 +325,33 @@ def graficar():
 
     # Función para mostrar la interfaz de Entrenamiento
     def mostrar_entrenamiento():
+        global obj_message
+        def intermediate_ajecutar():
+            try:
+                txt = get_text()
+                print(txt[1])
+                list_patrones = txt[0]
+                list_salidas = txt[1]
+                list_pesos = txt[2]
+                precision = error_deseado_entry.get()
+                alpha = alpha_entry.get()
+                list_w,epoca_vs_error = btn_aplicacion(alpha=alpha,error=precision,inputs=list_patrones,outputs=list_salidas,weights=list_pesos)
+            except Exception as e:
+                msg = """
+                Por favor cargue le archivo.\n
+                * El archivo debe estar de la siguiente forma:\n
+                  ~ Patrones\n
+                  ~ Salidas\n
+                  ~ Pesos\n
+                  Ejemplo: \n
+                        [00,01,10,11]\n
+                        [1,2,3,4]\n
+                        [0.2,0.5,0.1]\n
+                """
+                obj_message.show_message_error(message=msg)
+                
+            
+     
         limpiar_interfaz()
 
         # Parte superior para imagen y título
@@ -359,22 +393,11 @@ def graficar():
         grafica_label.pack(pady=10)
 
         # Entradas manuales
-        entradas_label = ctk.CTkLabel(data_frame, text="Cargar Entradas:")
+        entradas_label = ctk.CTkLabel(data_frame, text="Cargar Datos:")
         entradas_label.pack(pady=5)
-        entradas_button = ctk.CTkButton(data_frame, text="Cargar Entradas", command=lambda: cargar_archivo(entradas_label))
+        entradas_button = ctk.CTkButton(data_frame, text="Cargar Entradas", command=lambda: cargar_archivo())
         entradas_button.pack(pady=5)
 
-        # Salidas manuales
-        salidas_label = ctk.CTkLabel(data_frame, text="Cargar Salidas:")
-        salidas_label.pack(pady=5)
-        salidas_button = ctk.CTkButton(data_frame, text="Cargar Salidas", command=lambda: cargar_archivo(salidas_label))
-        salidas_button.pack(pady=5)
-
-        # Pesos manuales
-        pesos_label = ctk.CTkLabel(data_frame, text="Cargar Pesos:")
-        pesos_label.pack(pady=5)
-        pesos_button = ctk.CTkButton(data_frame, text="Cargar Pesos", command=lambda: cargar_archivo(pesos_label))
-        pesos_button.pack(pady=5)
 
         # Error deseado
         error_deseado_label = ctk.CTkLabel(data_frame, text="Error Deseado:")
@@ -392,7 +415,7 @@ def graficar():
         alpha_entry.configure(validate="key", validatecommand=vcmd)
 
         # Botón para ejecutar (sin funcionalidad)
-        ejecutar_button = ctk.CTkButton(data_frame, text="Ejecutar")
+        ejecutar_button = ctk.CTkButton(data_frame, text="Ejecutar",command=intermediate_ajecutar)
         ejecutar_button.pack(pady=20)
         print(error_deseado_entry.get())
     
