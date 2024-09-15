@@ -140,15 +140,20 @@ def btn_aplicacion(inputs,outputs,weights,error,alpha):
     
 
 def graficar():
-    # Función para cargar archivo .txt y mostrar su contenido
-    def cargar_archivo():
+    # Variables globales
+    global root, obj_message
+
+    # Función para cargar archivo .txt y almacenar su contenido
+    # Función para cargar archivo .txt y almacenar su contenido
+    def cargar_archivo(entry_field=None):
         archivo = filedialog.askopenfilename(filetypes=[("Archivos de texto", "*.txt")])
         if archivo:
             try:
                 with open(archivo, 'r') as file:
-                    data = file.readlines()
-                data = [a.strip() for a in data]
-                set_text(txt=data)            
+                    data = file.read()
+                    if entry_field:
+                        entry_field.configure(text=archivo)  # Mostrar nombre del archivo cargado
+                    set_text(txt=data)
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo leer el archivo: {e}")
 
@@ -164,6 +169,7 @@ def graficar():
 
     # Función para mostrar la interfaz de Aplicación
     def mostrar_aplicacion():
+        # Variables y widgets locales a esta función
         def intermediate_ajecutar():
             # Obtener los valores ingresados por el usuario desde la interfaz
             inputs = entradas_manual_entry.get()
@@ -171,7 +177,7 @@ def graficar():
             weights = pesos_manual_entry.get()
             error = error_deseado_entry.get()
             alpha = alpha_entry.get()
-            
+
             # Llamar a la función btn_aplicacion() con los valores obtenidos
             list_w, err_ep = btn_aplicacion(
                 inputs=inputs,
@@ -180,22 +186,22 @@ def graficar():
                 error=error,
                 alpha=alpha,
             )
-            
+
             # Crear una lista de épocas y errores a partir de err_ep
             epocas = list(err_ep.keys())
             errores = list(err_ep.values())
-            
+
             # Eliminar prefijos innecesarios y dejar solo el número (si existe un prefijo "Epoca+")
             etiquetas_simplificadas = [etiqueta.replace('Epoca+', '') for etiqueta in epocas]
-            
+
             # Limpiar cualquier gráfica anterior en el frame superior izquierdo (top_left_frame)
             for widget in top_left_frame.winfo_children():
                 widget.destroy()
-            
+
             # Crear la gráfica usando matplotlib en modo oscuro
             fig = Figure(figsize=(5, 3), dpi=100)
             ax = fig.add_subplot(111)
-            
+
             # Modo oscuro: cambiar colores de fondo y de texto
             fig.patch.set_facecolor('#2e2e2e')  # Fondo del gráfico
             ax.set_facecolor('#2e2e2e')  # Fondo del área de la gráfica
@@ -206,36 +212,36 @@ def graficar():
             ax.tick_params(axis='x', colors='white')  # Etiquetas del eje X
             ax.tick_params(axis='y', colors='white')  # Etiquetas del eje Y
             ax.title.set_color('white')             # Título de la gráfica
-            
+
             # Graficar los datos
             ax.plot(etiquetas_simplificadas, errores, marker='o', color='#1f77b4')  # Color de la línea y puntos
             ax.set_title("Error por Época")
             ax.set_xlabel("Época")
             ax.set_ylabel("Error")
-            
+
             # Ajustar la cuadrícula (grid) en modo oscuro
             ax.grid(True, which='both', linestyle='--', linewidth=1.5, color='gray')
 
             # Mostrar solo algunas etiquetas en el eje X (por ejemplo, cada 10 épocas)
             step = max(1, len(etiquetas_simplificadas) // 10)
             ax.set_xticks([i for i in range(0, len(etiquetas_simplificadas), step)])
-            ax.set_xticklabels([etiquetas_simplificadas[i] for i in range(0, len(etiquetas_simplificadas), step)], rotation=45, ha='right', fontsize=8)
-            
+            ax.set_xticklabels([etiquetas_simplificadas[i] for i in range(0, len(etiquetas_simplificadas), step)],
+                               rotation=45, ha='right', fontsize=8)
+
             # Insertar la gráfica en el área designada (top_left_frame)
             canvas = FigureCanvasTkAgg(fig, master=top_left_frame)
             canvas.draw()
             canvas.get_tk_widget().pack(side="top", fill="both", expand=True)
-            
+
             # Limpiar cualquier contenido anterior en bottom_left_frame
             for widget in bottom_left_frame.winfo_children():
                 widget.destroy()
-            
+
             # Mostrar los pesos finales
-            pesos_text = "Pesos Finales después del entrenamiento:\n" + "\n".join([f"w{i}: {w}" for i, w in enumerate(list_w)])
+            pesos_text = "Pesos Finales después del entrenamiento:\n" + "\n".join(
+                [f"w{i}: {w}" for i, w in enumerate(list_w)])
             pesos_label = ctk.CTkLabel(bottom_left_frame, text=pesos_text, font=ctk.CTkFont(size=14))
             pesos_label.pack(pady=10)
-
-
 
         limpiar_interfaz()
 
@@ -316,46 +322,106 @@ def graficar():
         alpha_entry = ctk.CTkEntry(data_frame, width=200, placeholder_text="Ej: 0.5")
         alpha_entry.pack(pady=5)
         alpha_entry.configure(validate="key", validatecommand=vcmd)
-        
 
-        # Botón para ejecutar (sin funcionalidad)
-        ejecutar_button = ctk.CTkButton(data_frame, text="Ejecutar",command=intermediate_ajecutar)
+        # Botón para ejecutar
+        ejecutar_button = ctk.CTkButton(data_frame, text="Ejecutar", command=intermediate_ajecutar)
         ejecutar_button.pack(pady=20)
 
     # Función para mostrar la interfaz de Entrenamiento
     def mostrar_entrenamiento():
-        global obj_message
-        def intermediate_ajecutar():
+        # Variables y widgets locales a esta función
+        def intermediate_ajecutar_entrenamiento():
             try:
                 txt = get_text()
-                print(txt[1])
-                list_patrones = txt[0]
-                list_salidas = txt[1]
-                list_pesos = txt[2]
-                precision = error_deseado_entry.get()
+                error = error_deseado_entry.get()
                 alpha = alpha_entry.get()
-                list_w,epoca_vs_error = btn_aplicacion(alpha=alpha,error=precision,inputs=list_patrones,outputs=list_salidas,weights=list_pesos)
+
+                if txt is None:
+                    raise ValueError("No se ha cargado ningún archivo de datos.")
+
+                # Procesar los datos del archivo cargado
+                lines = txt.strip().split('\n')
+                if len(lines) < 3:
+                    raise ValueError("El archivo debe contener al menos 3 líneas: patrones, salidas y pesos.")
+
+                list_patrones = lines[0].strip()
+                list_salidas = lines[1].strip()
+                list_pesos = lines[2].strip()
+
+                # Llamar a la función de entrenamiento
+                list_w, err_ep = btn_aplicacion(
+                    inputs=list_patrones,
+                    outputs=list_salidas,
+                    weights=list_pesos,
+                    error=error,
+                    alpha=alpha,
+                )
+
+                # Crear una lista de épocas y errores a partir de err_ep
+                epocas = list(err_ep.keys())
+                errores = list(err_ep.values())
+
+                # Eliminar prefijos innecesarios y dejar solo el número
+                etiquetas_simplificadas = [etiqueta.replace('Epoca+', '') for etiqueta in epocas]
+
+                # Limpiar cualquier gráfica anterior en el frame superior izquierdo (top_left_frame)
+                for widget in top_left_frame.winfo_children():
+                    widget.destroy()
+
+                # Crear la gráfica usando matplotlib en modo oscuro
+                fig = Figure(figsize=(5, 3), dpi=100)
+                ax = fig.add_subplot(111)
+
+                # Modo oscuro: cambiar colores de fondo y de texto
+                fig.patch.set_facecolor('#2e2e2e')  # Fondo del gráfico
+                ax.set_facecolor('#2e2e2e')  # Fondo del área de la gráfica
+                ax.spines['bottom'].set_color('white')  # Eje X
+                ax.spines['left'].set_color('white')    # Eje Y
+                ax.xaxis.label.set_color('white')       # Etiqueta eje X
+                ax.yaxis.label.set_color('white')       # Etiqueta eje Y
+                ax.tick_params(axis='x', colors='white')  # Etiquetas del eje X
+                ax.tick_params(axis='y', colors='white')  # Etiquetas del eje Y
+                ax.title.set_color('white')             # Título de la gráfica
+
+                # Graficar los datos
+                ax.plot(etiquetas_simplificadas, errores, marker='o', color='#1f77b4')  # Color de la línea y puntos
+                ax.set_title("Error por Época")
+                ax.set_xlabel("Época")
+                ax.set_ylabel("Error")
+
+                # Ajustar la cuadrícula (grid) en modo oscuro
+                ax.grid(True, which='both', linestyle='--', linewidth=1.5, color='gray')
+
+                # Mostrar solo algunas etiquetas en el eje X
+                step = max(1, len(etiquetas_simplificadas) // 10)
+                ax.set_xticks([i for i in range(0, len(etiquetas_simplificadas), step)])
+                ax.set_xticklabels(
+                    [etiquetas_simplificadas[i] for i in range(0, len(etiquetas_simplificadas), step)],
+                    rotation=45, ha='right', fontsize=8
+                )
+
+                # Insertar la gráfica en el área designada (top_left_frame)
+                canvas = FigureCanvasTkAgg(fig, master=top_left_frame)
+                canvas.draw()
+                canvas.get_tk_widget().grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
+
+                # Limpiar cualquier contenido anterior en bottom_left_frame
+                for widget in bottom_left_frame.winfo_children():
+                    widget.destroy()
+
             except Exception as e:
-                msg = """
-                Por favor cargue le archivo.\n
-                * El archivo debe estar de la siguiente forma:\n
-                  ~ Patrones\n
-                  ~ Salidas\n
-                  ~ Pesos\n
-                  Ejemplo: \n
-                        [00,01,10,11]\n
-                        [1,2,3,4]\n
-                        [0.2,0.5,0.1]\n
+                msg = f"""
+                Error al ejecutar el entrenamiento:\n
+                ~ {str(e)}
                 """
                 obj_message.show_message_error(message=msg)
-                
-            
-     
+
         limpiar_interfaz()
 
         # Parte superior para imagen y título
         frame_superior = ctk.CTkFrame(root)
         frame_superior.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
+        root.grid_rowconfigure(1, weight=0)  # Fila de la imagen no se expande
 
         # Cargar la imagen `Udec.jpg`
         img_udec = Image.open("Udec.jpg")
@@ -363,40 +429,51 @@ def graficar():
         img_udec_tk = ImageTk.PhotoImage(img_udec)
         print("Cargando imagen desde:", os.path.abspath("Udec.jpg"))
 
-
         # Mostrar la imagen
         udec_label = ctk.CTkLabel(frame_superior, image=img_udec_tk, text="")
         udec_label.image = img_udec_tk
-        udec_label.pack()
+        udec_label.grid(row=0, column=0)
 
         # Texto sobre la imagen
-        texto_label = ctk.CTkLabel(frame_superior, text="RNA ADALINE ENTRENAMIENTO", font=ctk.CTkFont(size=24, weight="bold"))
+        texto_label = ctk.CTkLabel(frame_superior, text="RNA ADALINE ENTRENAMIENTO",
+                                   font=ctk.CTkFont(size=24, weight="bold"))
         texto_label.place(relx=0.5, rely=0.5, anchor="center")
 
         # Parte inferior: dos columnas
         left_frame = ctk.CTkScrollableFrame(root)
         left_frame.grid(row=2, column=0, padx=10, pady=10, sticky="nsew")
-        data_frame = ctk.CTkScrollableFrame(root,height=345)
+        data_frame = ctk.CTkScrollableFrame(root, height=345)
         data_frame.grid(row=2, column=1, padx=10, pady=10, sticky="nsew")
 
         # Configurar el tamaño de las columnas (izquierda más grande que derecha)
         root.grid_columnconfigure(0, weight=3)  # Columna izquierda más grande
         root.grid_columnconfigure(1, weight=1)  # Columna derecha más pequeña
+        root.grid_rowconfigure(2, weight=1)     # Fila 2 se expande
 
-                # Gráfica Error vs Épocas en el left_frame
-                # Datos de ejemplo en un diccionario
-       
-        
-        
-        grafica_label = ctk.CTkLabel(left_frame, text="Gráfica Error vs Épocas", font=ctk.CTkFont(size=16, weight="bold"))
-        grafica_label.pack(pady=10)
+        # Configurar el left_frame
+        left_frame.grid_rowconfigure(0, weight=1)
+        left_frame.grid_columnconfigure(0, weight=1)
 
-        # Entradas manuales
-        entradas_label = ctk.CTkLabel(data_frame, text="Cargar Datos:")
-        entradas_label.pack(pady=5)
-        entradas_button = ctk.CTkButton(data_frame, text="Cargar Entradas", command=lambda: cargar_archivo())
-        entradas_button.pack(pady=5)
+        # Parte superior del left_frame (Gráfica Error vs Épocas)
+        top_left_frame = ctk.CTkFrame(left_frame)
+        top_left_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+        top_left_frame.grid_rowconfigure(1, weight=1)
+        top_left_frame.grid_columnconfigure(0, weight=1)
 
+        top_left_label = ctk.CTkLabel(top_left_frame, text="Gráfica Error vs Épocas",
+                                      font=ctk.CTkFont(size=16, weight="bold"))
+        top_left_label.grid(row=0, column=0, padx=10, pady=10)
+
+        # Parte inferior del left_frame (No se muestra en entrenamiento)
+        # Eliminamos o no creamos el bottom_left_frame en la vista de Entrenamiento
+        bottom_left_frame = ctk.CTkFrame(left_frame)
+        bottom_left_frame.grid_forget()  # No mostramos este frame en Entrenamiento
+
+        # Botón para cargar el archivo de datos
+        cargar_label = ctk.CTkLabel(data_frame, text="Cargar Datos:")
+        cargar_label.pack(pady=5)
+        cargar_button = ctk.CTkButton(data_frame, text="Cargar Archivo", command=lambda: cargar_archivo(cargar_label))
+        cargar_button.pack(pady=5)
 
         # Error deseado
         error_deseado_label = ctk.CTkLabel(data_frame, text="Error Deseado:")
@@ -413,11 +490,9 @@ def graficar():
         alpha_entry.pack(pady=5)
         alpha_entry.configure(validate="key", validatecommand=vcmd)
 
-        # Botón para ejecutar (sin funcionalidad)
-        ejecutar_button = ctk.CTkButton(data_frame, text="Ejecutar",command=intermediate_ajecutar)
+        # Botón para ejecutar
+        ejecutar_button = ctk.CTkButton(data_frame, text="Ejecutar", command=intermediate_ajecutar_entrenamiento)
         ejecutar_button.pack(pady=20)
-        print(error_deseado_entry.get())
-    
 
     # Función para limpiar la interfaz sin borrar los botones de selección
     def limpiar_interfaz():
@@ -431,10 +506,9 @@ def graficar():
 
     root = ctk.CTk()
     root.title("Selector de Aplicación y Entrenamiento")
-    root.geometry("840x640")
+    root.geometry("900x700")
 
     # Botones de selección entre "Aplicación" y "Entrenamiento", siempre visibles
-    
     frame_seleccion = ctk.CTkFrame(root)
     frame_seleccion.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
 
@@ -449,4 +523,5 @@ def graficar():
 
     # Iniciar la aplicación
     root.mainloop()
+
 graficar()
