@@ -174,20 +174,11 @@ def graficar():
                 alpha=alpha,
             )
             
-            # Imprimir en consola los valores obtenidos (opcional)
-            print("Entradas (inputs):", inputs)
-            print("Salidas (outputs):", outputs)
-            print("Pesos iniciales (weights):", weights)
-            print("Error deseado:", error)
-            print("Alpha:", alpha)
-            print("Pesos finales después del entrenamiento (list_w):", list_w)
-            print("Evolución del error vs épocas (err_ep):", err_ep)
-
             # Crear una lista de épocas y errores a partir de err_ep
             epocas = list(err_ep.keys())
             errores = list(err_ep.values())
             
-            # Eliminar prefijos innecesarios y dejar solo el número (si existe un prefijo "Época+")
+            # Eliminar prefijos innecesarios y dejar solo el número (si existe un prefijo "Epoca+")
             etiquetas_simplificadas = [etiqueta.replace('Epoca+', '') for etiqueta in epocas]
             
             # Limpiar cualquier gráfica anterior en el frame superior izquierdo (top_left_frame)
@@ -219,16 +210,24 @@ def graficar():
             ax.grid(True, which='both', linestyle='--', linewidth=1.5, color='gray')
 
             # Mostrar solo algunas etiquetas en el eje X (por ejemplo, cada 10 épocas)
-            step = max(1, len(etiquetas_simplificadas) // 10)  # Ajustar el paso según el número de épocas
+            step = max(1, len(etiquetas_simplificadas) // 10)
             ax.set_xticks([i for i in range(0, len(etiquetas_simplificadas), step)])
-            
-            # Reducir el tamaño de la fuente de las etiquetas en el eje X
             ax.set_xticklabels([etiquetas_simplificadas[i] for i in range(0, len(etiquetas_simplificadas), step)], rotation=45, ha='right', fontsize=8)
             
             # Insertar la gráfica en el área designada (top_left_frame)
             canvas = FigureCanvasTkAgg(fig, master=top_left_frame)
             canvas.draw()
             canvas.get_tk_widget().pack(side="top", fill="both", expand=True)
+            
+            # Limpiar cualquier contenido anterior en bottom_left_frame
+            for widget in bottom_left_frame.winfo_children():
+                widget.destroy()
+            
+            # Mostrar los pesos finales
+            pesos_text = "Pesos Finales después del entrenamiento:\n" + "\n".join([f"w{i}: {w}" for i, w in enumerate(list_w)])
+            pesos_label = ctk.CTkLabel(bottom_left_frame, text=pesos_text, font=ctk.CTkFont(size=14))
+            pesos_label.pack(pady=10)
+
 
 
         limpiar_interfaz()
@@ -239,7 +238,7 @@ def graficar():
 
         # Cargar la imagen `Udec.jpg`
         img_udec = Image.open("Udec.jpg")
-        img_udec = img_udec.resize((800, 200))  # Ajustar tamaño de la imagen
+        img_udec = img_udec.resize((900, 200))  # Ajustar tamaño de la imagen
         img_udec_tk = ImageTk.PhotoImage(img_udec)
 
         # Mostrar la imagen
