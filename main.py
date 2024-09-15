@@ -1,3 +1,4 @@
+import os
 from Sources.opreations_sistem import Operations
 from Sources.patrones import Patrones
 from Sources.Functions import Functions
@@ -8,6 +9,8 @@ from tkinter import messagebox
 from PIL import Image, ImageTk
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+
 obj_message = Message()
 
 def fit(prediction = 0.01,mat = None,alpha = 0.5,weigth = None):
@@ -155,14 +158,79 @@ def graficar():
     # Función para mostrar la interfaz de Aplicación
     def mostrar_aplicacion():
         def intermediate_ajecutar():
-            list_w,err_ep = btn_aplicacion( inputs=entradas_manual_entry.get(),
-                            outputs=salidas_manual_entry.get(),
-                            weights=pesos_manual_entry.get(),
-                            error=error_deseado_entry.get(),
-                            alpha=alpha_entry.get(),
-                            )
+            # Obtener los valores ingresados por el usuario desde la interfaz
+            inputs = entradas_manual_entry.get()
+            outputs = salidas_manual_entry.get()
+            weights = pesos_manual_entry.get()
+            error = error_deseado_entry.get()
+            alpha = alpha_entry.get()
             
-        # Limpiar la interfaz, pero dejar los botones de selección
+            # Llamar a la función btn_aplicacion() con los valores obtenidos
+            list_w, err_ep = btn_aplicacion(
+                inputs=inputs,
+                outputs=outputs,
+                weights=weights,
+                error=error,
+                alpha=alpha,
+            )
+            
+            # Imprimir en consola los valores obtenidos (opcional)
+            print("Entradas (inputs):", inputs)
+            print("Salidas (outputs):", outputs)
+            print("Pesos iniciales (weights):", weights)
+            print("Error deseado:", error)
+            print("Alpha:", alpha)
+            print("Pesos finales después del entrenamiento (list_w):", list_w)
+            print("Evolución del error vs épocas (err_ep):", err_ep)
+
+            # Crear una lista de épocas y errores a partir de err_ep
+            epocas = list(err_ep.keys())
+            errores = list(err_ep.values())
+            
+            # Eliminar prefijos innecesarios y dejar solo el número (si existe un prefijo "Época+")
+            etiquetas_simplificadas = [etiqueta.replace('Epoca+', '') for etiqueta in epocas]
+            
+            # Limpiar cualquier gráfica anterior en el frame superior izquierdo (top_left_frame)
+            for widget in top_left_frame.winfo_children():
+                widget.destroy()
+            
+            # Crear la gráfica usando matplotlib en modo oscuro
+            fig = Figure(figsize=(5, 3), dpi=100)
+            ax = fig.add_subplot(111)
+            
+            # Modo oscuro: cambiar colores de fondo y de texto
+            fig.patch.set_facecolor('#2e2e2e')  # Fondo del gráfico
+            ax.set_facecolor('#2e2e2e')  # Fondo del área de la gráfica
+            ax.spines['bottom'].set_color('white')  # Eje X
+            ax.spines['left'].set_color('white')    # Eje Y
+            ax.xaxis.label.set_color('white')       # Etiqueta eje X
+            ax.yaxis.label.set_color('white')       # Etiqueta eje Y
+            ax.tick_params(axis='x', colors='white')  # Etiquetas del eje X
+            ax.tick_params(axis='y', colors='white')  # Etiquetas del eje Y
+            ax.title.set_color('white')             # Título de la gráfica
+            
+            # Graficar los datos
+            ax.plot(etiquetas_simplificadas, errores, marker='o', color='#1f77b4')  # Color de la línea y puntos
+            ax.set_title("Error por Época")
+            ax.set_xlabel("Época")
+            ax.set_ylabel("Error")
+            
+            # Ajustar la cuadrícula (grid) en modo oscuro
+            ax.grid(True, which='both', linestyle='--', linewidth=1.5, color='gray')
+
+            # Mostrar solo algunas etiquetas en el eje X (por ejemplo, cada 10 épocas)
+            step = max(1, len(etiquetas_simplificadas) // 10)  # Ajustar el paso según el número de épocas
+            ax.set_xticks([i for i in range(0, len(etiquetas_simplificadas), step)])
+            
+            # Reducir el tamaño de la fuente de las etiquetas en el eje X
+            ax.set_xticklabels([etiquetas_simplificadas[i] for i in range(0, len(etiquetas_simplificadas), step)], rotation=45, ha='right', fontsize=8)
+            
+            # Insertar la gráfica en el área designada (top_left_frame)
+            canvas = FigureCanvasTkAgg(fig, master=top_left_frame)
+            canvas.draw()
+            canvas.get_tk_widget().pack(side="top", fill="both", expand=True)
+
+
         limpiar_interfaz()
 
         # Parte superior para imagen y título
@@ -260,6 +328,8 @@ def graficar():
         img_udec = Image.open("Udec.jpg")
         img_udec = img_udec.resize((850, 200))  # Ajustar tamaño de la imagen
         img_udec_tk = ImageTk.PhotoImage(img_udec)
+        print("Cargando imagen desde:", os.path.abspath("Udec.jpg"))
+
 
         # Mostrar la imagen
         udec_label = ctk.CTkLabel(frame_superior, image=img_udec_tk, text="")
