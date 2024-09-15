@@ -249,7 +249,7 @@ def graficar():
         ejecutar_button.pack(pady=20)
 
     # Función para mostrar la interfaz de Entrenamiento
-    def mostrar_entrenamiento(data = None):
+    def mostrar_entrenamiento():
         limpiar_interfaz()
 
         # Parte superior para imagen y título
@@ -284,34 +284,9 @@ def graficar():
                 # Datos de ejemplo en un diccionario
        
         
-        datos = data
-        # Crear la figura y los ejes de Matplotlib
-        fig, ax = plt.subplots(figsize=(6, 4))
-        ax.plot(datos['Épocas'], datos['Error'], label='Seno')
-        ax.set_xlabel('Épocas')
-        ax.set_ylabel('Error')
-        ax.set_title('Gráfica Error vs Épocas')
-        ax.legend()
-
-            # Configurar la ventana principal
-        root = ctk.CTk()
-        root.title("Mostrar Gráfica")
-
-            # Crear un frame para organizar los widgets
-        left_frame = ctk.CTkFrame(root)
-        left_frame.pack(padx=20, pady=20)
-
-            # Etiqueta para la gráfica
+        
         grafica_label = ctk.CTkLabel(left_frame, text="Gráfica Error vs Épocas", font=ctk.CTkFont(size=16, weight="bold"))
         grafica_label.pack(pady=10)
-
-            # Crear un canvas para la gráfica y agregarlo a la interfaz
-        canvas = FigureCanvasTkAgg(fig, master=left_frame)
-        canvas_widget = canvas.get_tk_widget()
-        canvas_widget.pack(pady=10, fill='both', expand=True)
-
-            # Dibujar la gráfica
-        canvas.draw()
 
         # Entradas manuales
         entradas_label = ctk.CTkLabel(data_frame, text="Cargar Entradas:")
