@@ -10,7 +10,9 @@ from PIL import Image, ImageTk
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+from Sources.op import Opreration_system
 
+obj_op = Opreration_system()
 obj_message = Message()
 text = None
 def fit(prediction = 0.01,mat = None,alpha = 0.5,weigth = None):
@@ -36,36 +38,42 @@ def fit(prediction = 0.01,mat = None,alpha = 0.5,weigth = None):
     obj_functions.alpha = alpha
     obj_functions.list_w = w  
     obj_functions.logical = matriz  
-
     # Entrenamiento
+    diverge = True
     while True:
-        E0bt = 0
-        Yo = [0] * len(Yd)  # Inicializa las salidas de los patrones
+            E0bt = 0
+            Yo = [0] * len(Yd)  # Inicializa las salidas de los patrones
 
-        for i in range(len(Yd)):
-            yd = Yd[i]
-            net = obj_functions.sum_net(index=i)
-            error = yd - net
-            Yo[i] = net
-            E0bt += abs(error)
+            for i in range(len(Yd)):
+                yd = Yd[i]
+                net = obj_functions.sum_net(index=i)
+                error = yd - net
+                Yo[i] = net
+                E0bt += abs(error)
 
-            # Actualización de los pesos
-            obj_functions.list_w = obj_functions.new_w(index=i, Yop=net)
-        Eactual = E0bt / len(Yd)
-        if f'Epoca+{epoca}' not in error_vs_epoca:
-            error_vs_epoca[f"Epoca+{epoca}"] = Eactual
+                # Actualización de los pesos
+                obj_functions.list_w = obj_functions.new_w(index=i, Yop=net)
+            Eactual = E0bt / len(Yd)
+            if f'Epoca+{epoca}' not in error_vs_epoca:
+                error_vs_epoca[f"Epoca+{epoca}"] = Eactual
 
-        if abs(Eactual - Eanterior) < precision:
-            break
+            if abs(Eactual - Eanterior) < precision:
+                break
+            if epoca > 2000:
+                print("sale por 5000")
+                diverge = False
+                break
 
-        Eanterior = Eactual
-        epoca += 1
-
+            Eanterior = Eactual
+            epoca += 1
     print(f"Épocas finales: {epoca}")
     print(f"Error final: {Eactual}")
     print(f"Salidas de patrones (Yo): {Yo}")
     print(f"Pesos finales: {obj_functions.list_w}")
-    return obj_functions.list_w, error_vs_epoca
+    return diverge,obj_functions.list_w, error_vs_epoca
+  
+
+    
 def set_text(txt):
     global text 
     text = txt
@@ -117,14 +125,13 @@ def btn_aplicacion(inputs,outputs,weights,error,alpha):
         tam = len(matriz[0]) - 1
         weigt_list = [float(list_weigts[a]) for a in range(tam)]
         print("el error no es aqui")
-        list_w, erro_ve_epoca = fit(mat=matriz,prediction=err,alpha=alp,weigth=weigt_list)
+    
+        div,list_w, erro_ve_epoca = fit(mat=matriz,prediction=err,alpha=alp,weigth=weigt_list)
+        if div == False or list_w[0] > 10:
+            print("Entra")
+            obj_message.show_message_info(message="El entrenamiento fue interrumpido por divergencia")
         return list_w,erro_ve_epoca
-
-        #datos para enviar al entrenamiento
-        
-       
-
-                
+        #datos para enviar al entrenamiento 
     except Exception as e:
         msg = f"""
         Error...\n
@@ -199,7 +206,7 @@ def graficar():
                 widget.destroy()
 
             # Crear la gráfica usando matplotlib en modo oscuro
-            fig = Figure(figsize=(5, 3), dpi=100)
+            fig = Figure(figsize=(4, 3), dpi=85)
             ax = fig.add_subplot(111)
 
             # Modo oscuro: cambiar colores de fondo y de texto
@@ -237,11 +244,56 @@ def graficar():
             for widget in bottom_left_frame.winfo_children():
                 widget.destroy()
 
-            # Mostrar los pesos finales
-            pesos_text = "Pesos Finales después del entrenamiento:\n" + "\n".join(
-                [f"w{i}: {w}" for i, w in enumerate(list_w)])
-            pesos_label = ctk.CTkLabel(bottom_left_frame, text=pesos_text, font=ctk.CTkFont(size=14))
-            pesos_label.pack(pady=10)
+            
+            # Crear un frame scrollable para la tabla de pesos
+            scrollable_frame = ctk.CTkScrollableFrame(bottom_left_frame, height=200, width=800)
+            scrollable_frame.pack(pady=10, padx=10, fill='both', expand=True)
+
+            # Función para crear celdas con borde
+            def create_cell(parent, text, row, column, border_width=1):
+                frame = ctk.CTkFrame(parent, border_width=border_width, border_color='gray')
+                frame.grid(row=row, column=column, padx=0, pady=0, sticky="nsew")
+                
+                label = ctk.CTkLabel(frame, text=text, padx=10, pady=5)
+                label.pack(fill='both', expand=True)
+                
+                return frame
+
+            # Función para crear líneas de separación entre filas
+            def create_row_separator(parent, row):
+                separator = ctk.CTkFrame(parent, height=1, border_width=1, border_color='gray')
+                separator.grid(row=row, column=0, columnspan=2, sticky="ew")
+                return separator
+
+            # Configurar expansión de filas y columnas
+            scrollable_frame.grid_rowconfigure(0, weight=1)
+            scrollable_frame.grid_columnconfigure(0, weight=1)
+            scrollable_frame.grid_columnconfigure(1, weight=1)
+
+            # Título de la tabla
+            create_cell(scrollable_frame, "Pesos ideales", 0, 0, border_width=0).grid(columnspan=2, pady=10, padx=10)
+
+            # Crear la tabla de pesos
+            create_cell(scrollable_frame, "Peso", 1, 0)
+            create_cell(scrollable_frame, "Valor", 1, 1)
+
+            # Crear líneas de separación entre el encabezado y los datos
+            create_row_separator(scrollable_frame, 2)
+
+            # Agregar los pesos a la tabla
+            for i, w in enumerate(list_w):
+                create_cell(scrollable_frame, f"w{i}", i+2, 0)
+                create_cell(scrollable_frame, str(w), i+2, 1)  # Convertir el peso a string sin redondear
+                
+                # Crear líneas de separación entre filas
+                create_row_separator(scrollable_frame, i+3)
+
+            # Ajustar expansión de filas y columnas
+            for i in range(len(list_w) + 2):
+                scrollable_frame.grid_rowconfigure(i + 2, weight=1)
+            scrollable_frame.grid_columnconfigure(0, weight=1)
+            scrollable_frame.grid_columnconfigure(1, weight=1)
+
 
         limpiar_interfaz()
 
@@ -250,7 +302,13 @@ def graficar():
         frame_superior.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
 
         # Cargar la imagen `Udec.jpg`
-        img_udec = Image.open("Udec.jpg")
+        try:
+            path = obj_op.search_doc(name='Udec.jpg')
+            img_udec = Image.open(path)
+
+        except:
+            path = 'Udec.jpg'
+            img_udec = Image.open(path)
         img_udec = img_udec.resize((900, 200))  # Ajustar tamaño de la imagen
         img_udec_tk = ImageTk.PhotoImage(img_udec)
 
@@ -264,7 +322,7 @@ def graficar():
         texto_label.place(relx=0.5, rely=0.5, anchor="center")
 
         # Parte inferior: dos columnas
-        left_frame = ctk.CTkFrame(root)
+        left_frame = ctk.CTkScrollableFrame(root,height=345)
         left_frame.grid(row=2, column=0, padx=10, pady=10, sticky="nsew")
         data_frame = ctk.CTkScrollableFrame(root, height=345)
         data_frame.grid(row=2, column=1, padx=10, pady=10, sticky="nsew")
@@ -322,7 +380,16 @@ def graficar():
         alpha_entry = ctk.CTkEntry(data_frame, width=200, placeholder_text="Ej: 0.5")
         alpha_entry.pack(pady=5)
         alpha_entry.configure(validate="key", validatecommand=vcmd)
-
+        try:
+            txt = obj_op.read_file()
+            txt = [a.strip() for a in txt]
+            entradas_manual_entry.insert(0,txt[0])
+            salidas_manual_entry.insert(0,txt[1])
+            pesos_manual_entry.insert(0,txt[2])
+            error_deseado_entry.insert(0,txt[3])
+            alpha_entry.insert(0,txt[4])
+        except Exception as e:
+            print(e)
         # Botón para ejecutar
         ejecutar_button = ctk.CTkButton(data_frame, text="Ejecutar", command=intermediate_ajecutar)
         ejecutar_button.pack(pady=20)
@@ -356,6 +423,12 @@ def graficar():
                     error=error,
                     alpha=alpha,
                 )
+                data = f"""{list_patrones}
+                {list_salidas}
+                {list_w}
+                {error}
+                {alpha}"""
+                obj_op.create_write_file(data=data)
 
                 # Crear una lista de épocas y errores a partir de err_ep
                 epocas = list(err_ep.keys())
@@ -369,7 +442,7 @@ def graficar():
                     widget.destroy()
 
                 # Crear la gráfica usando matplotlib en modo oscuro
-                fig = Figure(figsize=(5, 3), dpi=100)
+                fig = Figure(figsize=(5, 3), dpi=90)
                 ax = fig.add_subplot(111)
 
                 # Modo oscuro: cambiar colores de fondo y de texto
@@ -424,7 +497,13 @@ def graficar():
         root.grid_rowconfigure(1, weight=0)  # Fila de la imagen no se expande
 
         # Cargar la imagen `Udec.jpg`
-        img_udec = Image.open("Udec.jpg")
+        try:
+            path = obj_op.search_doc(name='Udec.jpg')
+            img_udec = Image.open(path)
+
+        except:
+            path = 'Udec.jpg'
+            img_udec = Image.open(path)
         img_udec = img_udec.resize((850, 200))  # Ajustar tamaño de la imagen
         img_udec_tk = ImageTk.PhotoImage(img_udec)
         print("Cargando imagen desde:", os.path.abspath("Udec.jpg"))
@@ -500,14 +579,34 @@ def graficar():
             if widget.grid_info()['row'] != 0:  # Deja intacta la fila con los botones de selección
                 widget.destroy()
 
+    def centrar_ventana(root):
+    # Obtén las dimensiones de la pantalla
+        ancho_pantalla = root.winfo_screenwidth()
+        alto_pantalla = root.winfo_screenheight()
+
+        # Obtén las dimensiones de la ventana
+        ancho_ventana = 850
+        alto_ventana = 640
+
+        # Calcula la posición de la ventana
+        x = int((ancho_pantalla / 2) - (ancho_ventana / 2))
+        y = int((alto_pantalla / 2) - (alto_ventana / 2)) -30
+
+        # Establece la geometría de la ventana
+        root.geometry(f"{ancho_ventana}x{alto_ventana}+{x}+{y}")
     # Crear la ventana principal
     ctk.set_appearance_mode("dark")  # Modo oscuro
     ctk.set_default_color_theme("blue")  # Tema azul por defecto
 
     root = ctk.CTk()
-    root.title("Selector de Aplicación y Entrenamiento")
-    root.geometry("900x700")
+    root.title("Adeline | Juan Moreno - Nicolás Rodríguez Torres")
+    root.geometry("850x650")
+    try:
+        root.iconbitmap(obj_op.search_doc(name='logo.ico'))
+    except:
+        root.iconbitmap('logo.ico')
 
+    centrar_ventana(root=root)
     # Botones de selección entre "Aplicación" y "Entrenamiento", siempre visibles
     frame_seleccion = ctk.CTkFrame(root)
     frame_seleccion.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
