@@ -100,7 +100,7 @@ def fit(prediction = 0.01,mat = None,alpha = 0.5,weigth = None,writeHistorial = 
     print(f"Pesos finales: {obj_functions.list_w}")
     if writeHistorial == True:
             print("entra a historial")
-            obj_op.create_write_file(data=historial_real,name="\HisotrialAda.txt")
+            obj_op.create_write_file(data=historial_real,name="\HisotrialAda.txt",mess=False)
             obj_op.read_historial()
     return diverge,obj_functions.list_w, error_vs_epoca
   

@@ -13,10 +13,11 @@ class Opreration_system:
             f'Start-Process notepad -ArgumentList "{self.path+name}" -WindowStyle Minimized'
         ]
         process = subprocess.Popen(powershell_command)
-    def create_write_file(self,data,name = "\Adeline.txt"):
+    def create_write_file(self,data,name = "\Adeline.txt",mess = True):
         with open(self.path+name,'w') as file:
             file.write(data)
-            self.mss_info(app_id='Adeline',message="Archivo de texto creado en documents",title='Adeline Info',time=3)
+            if mess == True:
+                self.mss_info(app_id='Adeline',message="Archivo de texto creado en documents",title='Adeline Info',time=3)
        # print(f"{self.path}Adeline.txt")
     def read_file(self):
         with open(self.path+"\Adeline.txt",'r') as lector:
