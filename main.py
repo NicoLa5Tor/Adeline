@@ -15,9 +15,13 @@ from Sources.op import Opreration_system
 obj_op = Opreration_system()
 obj_message = Message()
 text = None
-def fit(prediction = 0.01,mat = None,alpha = 0.5,weigth = None):
+def fit(prediction = 0.01,mat = None,alpha = 0.5,weigth = None,writeHistorial = False):
+    historial = """"""
+    historial_real  = """
+                       ENTRENAMIENTO ADALINE
+    """
     # Creación de objetos
-    obj_op = Operations()
+    obj_op = Opreration_system()
     obj_patrons = Patrones()
     obj_functions = Functions()
 
@@ -43,13 +47,18 @@ def fit(prediction = 0.01,mat = None,alpha = 0.5,weigth = None):
     while True:
             E0bt = 0
             Yo = [0] * len(Yd)  # Inicializa las salidas de los patrones
-
+            historial += f"""
+            Época {epoca+1}\n
+            """
             for i in range(len(Yd)):
                 yd = Yd[i]
                 net = obj_functions.sum_net(index=i)
                 error = yd - net
                 Yo[i] = net
                 E0bt += abs(error)
+                historial += f"""
+                El patrón #{i+1} tiene un error de: {E0bt}
+                """
 
                 # Actualización de los pesos
                 obj_functions.list_w = obj_functions.new_w(index=i, Yop=net)
@@ -58,8 +67,27 @@ def fit(prediction = 0.01,mat = None,alpha = 0.5,weigth = None):
                 error_vs_epoca[f"Epoca+{epoca}"] = Eactual
 
             if abs(Eactual - Eanterior) < precision:
+                historial_real += f"""
+                Número de épocas = {epoca+1}
+                Alpha = {obj_functions.alpha}
+                Error deseado = {prediction}
+                Pesos ideales: \n
+                {''.join(f"\nw{ii} = {value}"for ii,value in enumerate(obj_functions.list_w))}
+                \nEl historial de entrenamiento fue el siguiente: \n
+                {historial}
+                """
                 break
-            if epoca > 2000:
+            elif epoca > 2000:
+                historial_real += f"""
+                Número de épocas = {epoca+1}
+                Alpha = {obj_functions.alpha}
+                Error deseado = {prediction}
+                El entrenamiento fue cancelado por divergencia :´[,
+                por lo tanto no hay pesos ideales.
+
+                El en entrenamiento antes de a cancelación es:\n
+                {historial}
+                """
                 print("sale por 5000")
                 diverge = False
                 break
@@ -70,6 +98,10 @@ def fit(prediction = 0.01,mat = None,alpha = 0.5,weigth = None):
     print(f"Error final: {Eactual}")
     print(f"Salidas de patrones (Yo): {Yo}")
     print(f"Pesos finales: {obj_functions.list_w}")
+    if writeHistorial == True:
+            print("entra a historial")
+            obj_op.create_write_file(data=historial_real,name="\HisotrialAda.txt")
+            obj_op.read_historial()
     return diverge,obj_functions.list_w, error_vs_epoca
   
 
@@ -80,7 +112,7 @@ def set_text(txt):
 def get_text():
     global text 
     return text
-def btn_aplicacion(inputs,outputs,weights,error,alpha):
+def btn_aplicacion(inputs,outputs,weights,error,alpha,hit = False):
     global obj_message
     try:
         inp = str(inputs)[1:-1]
@@ -126,7 +158,7 @@ def btn_aplicacion(inputs,outputs,weights,error,alpha):
         weigt_list = [float(list_weigts[a]) for a in range(tam)]
         print("el error no es aqui")
     
-        div,list_w, erro_ve_epoca = fit(mat=matriz,prediction=err,alpha=alp,weigth=weigt_list)
+        div,list_w, erro_ve_epoca = fit(mat=matriz,prediction=err,alpha=alp,weigth=weigt_list,writeHistorial=hit)
         if div == False or list_w[0] > 10:
             print("Entra")
             obj_message.show_message_info(message="El entrenamiento fue interrumpido por divergencia")
@@ -193,7 +225,6 @@ def graficar():
                 error=error,
                 alpha=alpha,
             )
-
             # Crear una lista de épocas y errores a partir de err_ep
             epocas = list(err_ep.keys())
             errores = list(err_ep.values())
@@ -422,7 +453,9 @@ def graficar():
                     weights=list_pesos,
                     error=error,
                     alpha=alpha,
+                    hit= True
                 )
+                print(err_ep)
                 data = f"""{list_patrones}
                 {list_salidas}
                 {list_w}

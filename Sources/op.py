@@ -1,13 +1,20 @@
 import os
 import subprocess
-import sys
+import sys,subprocess
 class Opreration_system:
 
     def __init__(self) -> None:
         self.path = os.path.join(os.path.expanduser('~'), 'Documents')
         pass
-    def create_write_file(self,data):
-        with open(self.path+"\Adeline.txt",'w') as file:
+    def read_historial(self,name = "\HisotrialAda.txt"):
+        powershell_command = [
+            'powershell', 
+            '-Command', 
+            f'Start-Process notepad -ArgumentList "{self.path+name}" -WindowStyle Minimized'
+        ]
+        process = subprocess.Popen(powershell_command)
+    def create_write_file(self,data,name = "\Adeline.txt"):
+        with open(self.path+name,'w') as file:
             file.write(data)
             self.mss_info(app_id='Adeline',message="Archivo de texto creado en documents",title='Adeline Info',time=3)
        # print(f"{self.path}Adeline.txt")
